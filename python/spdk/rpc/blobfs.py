@@ -18,6 +18,20 @@ def blobfs_detect(client, bdev_name):
     return client.call('blobfs_detect', params)
 
 
+def blob_set_bs_error(client, name, enable):
+    """set blobstore error.
+
+    Args:
+        name: block device name for blobstore.
+        enable: enable blobstore error
+    """
+    params = {
+        'name': name,
+        'enable': enable
+    }
+    return client.call('blob_set_bs_error', params)
+
+
 def blobfs_create(client, bdev_name, cluster_sz=None):
     """Build blobfs on bdev.
 

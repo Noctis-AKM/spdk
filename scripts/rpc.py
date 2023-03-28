@@ -3204,6 +3204,17 @@ Format: 'user:u1 secret:s1 muser:mu1 msecret:ms1,user:u2 secret:s2 muser:mu2 mse
         'env_dpdk_get_mem_stats', help='write the dpdk memory stats to a file.')
     p.set_defaults(func=env_dpdk_get_mem_stats)
 
+
+    def blob_set_bs_error(args):
+        print_json(rpc.blobfs.blob_set_bs_error(args.client,
+                                       name=args.bdev_name,enable=args.enable))
+
+    p = subparsers.add_parser('blob_set_bs_error', help='set bs error')
+    p.add_argument('-n', '--bdev-name', help='Blockdev name to get blobstore. Example: Nvme1n1.', required=True)
+    p.add_argument('-e', '--enable', action='store_true', help='Enable blobstore error emulation')
+    p.set_defaults(func=blob_set_bs_error)
+
+
     # blobfs
     def blobfs_detect(args):
         print(rpc.blobfs.blobfs_detect(args.client,

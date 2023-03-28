@@ -14,6 +14,7 @@
 #include "spdk/string.h"
 #include "spdk/rpc.h"
 #include "spdk/util.h"
+#include "../../lib/blob/blobstore.h"
 
 #ifndef PAGE_SIZE
 #define PAGE_SIZE 4096
@@ -24,6 +25,55 @@
 struct rpc_blobfs_set_cache_size {
 	uint64_t size_in_mb;
 };
+
+struct rpc_bs_set_bs_error_req {
+	char	*name;
+	bool	enable;
+};
+
+static const struct spdk_json_object_decoder rpc_bs_set_bs_error_req_decoders[] = {
+	{"name", offsetof(struct rpc_bs_set_bs_error_req, name), spdk_json_decode_string, false},
+	{"enable", offsetof(struct rpc_bs_set_bs_error_req, enable), spdk_json_decode_bool, false},
+};
+
+static void _free_rpc_blob_bs_error_request(struct rpc_bs_set_bs_error_req *req)
+{
+	if (req->name) {
+		free(req->name);
+	}
+}
+
+/* get metadata for specific blobstore name */
+static void
+spdk_rpc_set_bs_error(struct spdk_jsonrpc_request *request,
+		       const struct spdk_json_val *params)
+{
+	struct rpc_bs_set_bs_error_req req = {0};
+	struct spdk_json_write_ctx *w;
+	struct spdk_blob_store *bs = NULL;
+
+	if (spdk_json_decode_object(params, rpc_bs_set_bs_error_req_decoders,
+					      SPDK_COUNTOF(rpc_bs_set_bs_error_req_decoders),
+					      &req)) {
+		SPDK_ERRLOG("spdk_json_decode_object failed\n");
+		spdk_jsonrpc_send_error_response(request, SPDK_JSONRPC_ERROR_INTERNAL_ERROR,
+						 "spdk_json_decode_object failed");
+		goto cleanup;
+	}
+
+	SPDK_WARNLOG("trying to %s bs error emulator on %s\n",
+		     req.enable ? "enable" : "disable", req.name);
+
+	blobstore_set_error();
+	w = spdk_jsonrpc_begin_result(request);
+	spdk_json_write_bool(w, req.enable);
+	spdk_jsonrpc_end_result(request, w);
+
+cleanup:
+	_free_rpc_blob_bs_error_request(&req);
+}
+SPDK_RPC_REGISTER("blob_set_bs_error", spdk_rpc_set_bs_error, SPDK_RPC_STARTUP | SPDK_RPC_RUNTIME)
+
 
 static const struct spdk_json_object_decoder rpc_blobfs_set_cache_size_decoders[] = {
 	{"size_in_mb", offsetof(struct rpc_blobfs_set_cache_size, size_in_mb), spdk_json_decode_uint64},

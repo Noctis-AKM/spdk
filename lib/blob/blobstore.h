@@ -161,6 +161,7 @@ struct spdk_blob_store {
 
 	struct spdk_bs_dev		*dev;
 
+	bool					simu_error;
 	struct spdk_bit_array		*used_md_pages;		/* Protected by used_lock */
 	struct spdk_bit_pool		*used_clusters;		/* Protected by used_lock */
 	struct spdk_bit_array		*used_blobids;
@@ -257,6 +258,9 @@ struct spdk_bs_md_mask {
 	uint32_t	length; /* In bits */
 	uint8_t		mask[0];
 };
+
+extern struct spdk_blob_store *g_spdk_blob_stores;
+void blobstore_set_error(void);
 
 #define SPDK_MD_DESCRIPTOR_TYPE_PADDING 0
 #define SPDK_MD_DESCRIPTOR_TYPE_XATTR 2

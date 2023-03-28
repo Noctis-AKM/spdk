@@ -128,7 +128,7 @@ bs_claim_cluster(struct spdk_blob_store *bs)
 		return UINT32_MAX;
 	}
 
-	SPDK_DEBUGLOG(blob, "Claiming cluster %u\n", cluster_num);
+	//printf( "Claiming cluster %u\n", cluster_num);
 	bs->num_free_clusters--;
 
 	return cluster_num;
@@ -142,7 +142,8 @@ bs_release_cluster(struct spdk_blob_store *bs, uint32_t cluster_num)
 	assert(spdk_bit_pool_is_allocated(bs->used_clusters, cluster_num) == true);
 	assert(bs->num_free_clusters < bs->total_clusters);
 
-	SPDK_DEBUGLOG(blob, "Releasing cluster %u\n", cluster_num);
+	//SPDK_DEBUGLOG(blob, "Releasing cluster %u\n", cluster_num);
+	//printf( "Releasing cluster %u\n", cluster_num);
 
 	spdk_bit_pool_free_bit(bs->used_clusters, cluster_num);
 	bs->num_free_clusters++;
@@ -1994,6 +1995,14 @@ blob_persist_zero_pages_cpl(spdk_bs_sequence_t *seq, void *cb_arg, int bserrno)
 	blob_persist_clear_clusters(seq, ctx);
 }
 
+struct spdk_blob_store *g_spdk_blob_stores = NULL;
+
+void
+blobstore_set_error(void)
+{
+	g_spdk_blob_stores->simu_error = true;
+}
+
 static void
 blob_persist_zero_pages(spdk_bs_sequence_t *seq, void *cb_arg, int bserrno)
 {
@@ -2032,9 +2041,16 @@ blob_persist_zero_pages(spdk_bs_sequence_t *seq, void *cb_arg, int bserrno)
 		page_num = bs_blobid_to_page(blob->id);
 		lba = bs_md_page_to_lba(bs, page_num);
 
+		if (blob->bs->simu_error) {
+			printf("blob %lu, trigger root md page write error", blob->id);
+			batch->bserrno = -EIO;
+			goto out;
+		}
+
 		bs_batch_write_zeroes_dev(batch, lba, lba_count);
 	}
 
+out:
 	bs_batch_close(batch);
 }
 
@@ -2275,7 +2291,7 @@ blob_persist_generate_new_md(struct spdk_blob_persist_ctx *ctx)
 		ctx->pages[i - 1].crc = blob_md_page_calc_crc(&ctx->pages[i - 1]);
 		blob->active.pages[i] = page_num;
 		bs_claim_md_page(bs, page_num);
-		SPDK_DEBUGLOG(blob, "Claiming page %u for blob 0x%" PRIx64 "\n", page_num,
+		printf("Claiming page %u for blob 0x%" PRIx64 "\n", page_num,
 			      blob->id);
 		page_num++;
 	}
