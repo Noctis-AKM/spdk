@@ -435,13 +435,26 @@ uint32_t
 spdk_bit_pool_allocate_bit(struct spdk_bit_pool *pool)
 {
 	uint32_t bit_index = pool->lowest_free_bit;
+	uint32_t start_index;
 
 	if (bit_index == UINT32_MAX) {
 		return UINT32_MAX;
 	}
 
 	spdk_bit_array_set(pool->array, bit_index);
+
+#if 1
+	/* random allocation for test */
+	start_index = rand() % 100;
+	start_index += bit_index;
+
+	if(start_index > spdk_bit_array_capacity(pool->array))
+		start_index = 0;
+
+	pool->lowest_free_bit = spdk_bit_array_find_first_clear(pool->array, start_index);
+#else
 	pool->lowest_free_bit = spdk_bit_array_find_first_clear(pool->array, bit_index);
+#endif
 	pool->free_count--;
 	return bit_index;
 }
